@@ -1,0 +1,17 @@
+I think the mapping to figure out what the new ID is for an old ID need to be done by human, not programatically.
+
+I was envisioning a three step process that would be run from time to time - each time reducing the # of links to the old tree. I'll first discuss the processes in terms of a sequential file, and then using a table.
+
+I saw each iteration as consisting of three steps.
+
+    I'd run a script that would search all the HTML files in a directory and build a work file containing 1 record for each link to the tree on WorldConnect. Each  record in the work file would consist of a field containing the name of the HTML file, and a field containing the numeric ID portion of the WorldConnect link.
+     I would spend a lot of time figuring out what the WikiTree ID for that person was, and add that in it's entirity ("Jones-5823") as a 3rd field in the work file record. Doing it programatically would be a difficult task.
+    After I felt like I'd added enough WikiTree IDs to the work file, I'd run the 2nd script, that would read the workfile and if a WikiTree ID replacement was present, replaced all occurences [ordinarily there would only be one] of links to that ID.
+
+So, for each iteration, the number of links that pointed to WorldConnect would shrink. Step 1 might have a long run time, so after step 3, records having a WikiTree could be deleted.
+
+Could a Relational Data Base Table be used instead of a sequential file? Sure. In that case a "Done" flag could be set when a row was processed. Which could make them invisible to a logical file's view of the table. Or, the row could just be deleted after processing.
+
+In the WikiTree ID, the name portion is the surname at birth. Which for a large portion of women is "Unknown." Which brings up another issue. Lets say a couple is in WikiTree as "Smith-456" and "Unknown-890123." Then a member genealoginst might discover her ID might change to "Miller-99273." In which case, all the occurences of WikiTree links for "Unknown-890123" would need to be replaced by "Miller-99273." Or the same thing can happen if a typo was made when a profile was created. I can receive automatic e-mails whenever this happens. Or sometimes it's decided that two profiles on WikiTree actually refer to the same person, in which case, the two profiles are merged and one of the IDs is discontinued.
+
+I expect to eventually create WikiTree profiles all the individuals in my WorldConnect links -- if they aren't there already. [of the almost 3,400 individuals I've tried to add to WikiTree, about 10 were already there.]
