@@ -14,7 +14,8 @@ class MyHTMLParser(HTMLParser):
         else:            
             sys.stdout.write("<"+tag+' ')
             sys.stdout.write(attrs[0][0]+'=')
-            linkRef=attrs[0][1]
+            linkRef=re.sub('&','&amp;',attrs[0][1])
+ #           linkRef=attrs[0][1]
  #           linkRef=urllib.quote(attrs[0][1])
 
             sys.stdout.write('"'+linkRef+'"')
