@@ -87,7 +87,7 @@ if __name__ == "__main__":
     
     args = my_argparser.parse_args()    
     myConfig = ConfigParser.ConfigParser()
-    myConfig.read("table_list.cfg")
+    myConfig.read("urlshifter.cfg")
     tableSection='table_list'
     inPath = myConfig.get(tableSection,'inPath')
     outPath = myConfig.get(tableSection,'outPath')
