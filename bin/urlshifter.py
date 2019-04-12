@@ -4,7 +4,7 @@ from HTMLParser import HTMLParser
 import argparse
 import sys
 import re
-from urlparse import urlparse
+# from urlparse import urlparse
 import ConfigParser
 import csv
 import os
@@ -29,7 +29,7 @@ class MyHTMLParser(HTMLParser):
     def urlFiddler(self,url):
         myUrl=re.sub('&','&amp;',url)
         idRe=None
-        theTuple=urlparse(myUrl);
+        
         
         if(re.search(self.inLoc,theTuple.netloc)):
             idRe=re.search('id=[A-Z][0-9]+',theTuple.query)
@@ -43,16 +43,35 @@ class MyHTMLParser(HTMLParser):
                     
             
         return(myUrl)
-        
+    
+    def handle_reftag(self,tag,attrs):
+        self.outFile.write("<"+tag+' ')
+        if(len(attrs) < 1):
+            raise AttributeError
+        for kk in attrs:
+            if(None == re.match("href",kk[0])):
+                self.outFile.write(kk[0]+"=")
+                for sub in kk[1:]:
+                    self.outFile.write('"'+sub+'"')                
+            else:
+               self.outFile.write("href =")
+               newUrl=self.urlFiddler(kk[1])
+               self.outFile.write('"'+newUrl+'"')
+               self.outFile.write(">")
+                                 
+                                   
+                
     def handle_starttag(self,tag,attrs):
         if(tag != 'a'):
             self.outFile.write(self.get_starttag_text())
-        else:            
-            self.outFile.write("<"+tag+' ')
-            self.outFile.write(attrs[0][0]+'=')
-            linkRef=self.urlFiddler(attrs[0][1])            
-            self.outFile.write('"'+linkRef+'"')
-            self.outFile.write(">")
+        else:
+            try:
+               self.handle_reftag(tag,attrs)
+            except AttributeError:
+                print("Oops")
+                self.exceptionFile.write("Oops. In file " + self.infilename + " <" + tag + "> has no href"+os.linesep)
+            finally:
+                self.outFile.write(">")
 
     def handle_decl(self,decl):
         self.outFile.write('<!'+decl+'>')
@@ -96,6 +115,7 @@ if __name__ == "__main__":
     exceptMode = myConfig.get(tableSection,'exceptFileMode')
     exceptionFile=open(exceptFN,exceptMode)
     idDict = readCsvTable(tableFN)
+    
 
     htmlData=args.Infile.read()
     theParser = MyHTMLParser(args.Outfile,inPath,outPath,idDict,exceptionFile)
