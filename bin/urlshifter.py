@@ -4,7 +4,7 @@ from HTMLParser import HTMLParser
 import argparse
 import sys
 import re
-# from urlparse import urlparse
+from urlparse import urlparse
 import ConfigParser
 import csv
 import os
@@ -13,7 +13,7 @@ import os
 class MyHTMLParser(HTMLParser):
 
     
-    def __init__(self,file,inLoc,outLoc,idDict,exceptionFile):
+    def __init__(self,file,inLoc,outLoc,idDict,exceptionFile,idREList):
         HTMLParser.__init__(self)
         self.outFile=file
         self.inLoc=inLoc
@@ -21,27 +21,45 @@ class MyHTMLParser(HTMLParser):
         self.idDict=idDict
         self.exceptionFile=exceptionFile
         self.infilename=None
+        self.idREList=idREList
 
     def setInfileName(self,infilename):
         self.infilename=infilename
             
+    def find_id_in_url(self,url):
+        retVal=""
+        Success=True
+        reListNum=1
+        
+        idRE=re.search(self.idREList[0],url)
+        if(None == idRE):
+            self.exceptionFile.write('In: ' + self.infilename + ' URL: ' + url + ' Is Weird'+os.linesep)
+            Success=False
+        else:
+            newSearchString=idRE.group(0)
+        while((True == Success) and (reListNum <= len(self.idREList[1:])) ):
+            idRE=re.search(self.idREList[reListNum],newSearchString)
+            if(None == idRE):
+                self.exceptionFile.write("In: [%s] URL: [%s] is Missing a list key" % (self.infilename,url) + os.linesep)
+            else:
+                newSearchString=idRE.group(0)
+            reListNum = reListNum+1
+        if(True == Success):
+            return newSearchString
+        else:
+            return ""
         
     def urlFiddler(self,url):
         myUrl=re.sub('&','&amp;',url)
-        idRe=None
-        
-        
-        if(re.search(self.inLoc,theTuple.netloc)):
-            idRe=re.search('id=[A-Z][0-9]+',theTuple.query)
-            if(idRe != None):
-                id=idRe.group(0)
-                inId=id.split('=')[1][1:]
-                if self.idDict.has_key(inId):
-                    print('{'+inId+':'+self.idDict[inId]+'}')
+
+        if(re.match(self.inLoc,url)):
+            inId=self.find_id_in_url(url)
+            if(self.idDict.has_key(inId)):
+               print("{bn%s: %s}" % (inId,self.idDict[inId]))
+               myUrl=self.outLoc % (self.idDict[inId])
+               print(myUrl)
             else:
-                self.exceptionFile.write('In: '+self.infilename+' URL: '+ url + ' Is Weird'+os.linesep)
-                    
-            
+               self.exceptionFile.write('In: %s URL: %s [%s] not found in id list' % (self.infilename,url,inId) + os.linesep)                                
         return(myUrl)
     
     def handle_reftag(self,tag,attrs):
@@ -66,10 +84,10 @@ class MyHTMLParser(HTMLParser):
             self.outFile.write(self.get_starttag_text())
         else:
             try:
-               self.handle_reftag(tag,attrs)
+                self.handle_reftag(tag,attrs)
             except AttributeError:
                 print("Oops")
-                self.exceptionFile.write("Oops. In file " + self.infilename + " <" + tag + "> has no href"+os.linesep)
+                self.exceptionFile.write("Oops. In file %s <%s> has no href" % (self.infilename,tag) + os.linesep)
             finally:
                 self.outFile.write(">")
 
@@ -99,7 +117,8 @@ def readCsvTable(tableFN):
     
 
 if __name__ == "__main__":
-    
+
+    configFileName="urlshifter.cfg"
     my_argparser=argparse.ArgumentParser(description='Bills HTML Gizmo')
     my_argparser.add_argument('-i',type=file,dest='Infile')
     my_argparser.add_argument('-o',type=argparse.FileType('w'),dest='Outfile');
@@ -114,11 +133,23 @@ if __name__ == "__main__":
     exceptFN = myConfig.get(tableSection,'exceptFile')
     exceptMode = myConfig.get(tableSection,'exceptFileMode')
     exceptionFile=open(exceptFN,exceptMode)
+    moreREs=True
+    reNum=0
+    searchREs=[]
+    # Read the list of regular expressions we use to isolate the input id from
+    # the input URL.
+    while(True == moreREs):
+        optName="inptRE%d" % (reNum)
+        if(myConfig.has_option(tableSection,optName)):
+           searchREs.append(myConfig.get(tableSection,optName))
+           reNum=reNum+1
+        else:
+           moreREs=False
+    
     idDict = readCsvTable(tableFN)
     
-
     htmlData=args.Infile.read()
-    theParser = MyHTMLParser(args.Outfile,inPath,outPath,idDict,exceptionFile)
+    theParser = MyHTMLParser(args.Outfile,inPath,outPath,idDict,exceptionFile,searchREs)
     theParser.setInfileName(args.Infile.name)
     theParser.feed(htmlData)
    
