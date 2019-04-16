@@ -12,7 +12,7 @@ pointing to pages "wc.rootsweb.ancestry.com" and you wish to move to
 "wc.rootsweb.ancestry.com" to their corresponding pages on
 "wikitree.com".
 
-#### Contents
+### Contents
 
 The distribution contains three directories:
 
@@ -46,7 +46,7 @@ self-documenting..
 
 `urlshifter.py` opens its input file read-only, and its output file
 write. This means that each time you run `urlshifter.py`, it will
-*destroy its output file* and replace it with new contents.  The
+**destroy its output file** and replace it with new contents.  The
 program produces an exceptions file in the filename specified in its
 configuration file; that contains any complaints about missing input
 pages, nonsensical link tags, or other confusion.
