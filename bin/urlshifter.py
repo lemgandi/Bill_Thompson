@@ -51,15 +51,15 @@ class MyHTMLParser(HTMLParser):
         
     def urlFiddler(self,url):
         myUrl=re.sub('&','&amp;',url)
-
+        originalURL=myUrl
         if(re.match(self.inLoc,url)):
             inId=self.find_id_in_url(url)
-            if(self.idDict.has_key(inId)):
-               print("{bn%s: %s}" % (inId,self.idDict[inId]))
+            if((self.idDict.has_key(inId)) and (len(self.idDict[inId]) > 0)):
                myUrl=self.outLoc % (self.idDict[inId])
-               print(myUrl)
+               print("File: [%s] URL: [%s] changed to: [%s]" % (self.infilename,originalURL,myUrl))
             else:
-               self.exceptionFile.write('In: %s URL: %s [%s] not found in id list' % (self.infilename,url,inId) + os.linesep)                                
+               self.exceptionFile.write('In: %s URL: %s [%s] not found in id list' % (self.infilename,url,inId) + os.linesep)
+               myUrl=originalURL
         return(myUrl)
     
     def handle_reftag(self,tag,attrs):
@@ -118,20 +118,27 @@ def readCsvTable(tableFN):
     myReader=csv.reader(csvFile,delimiter=',',quotechar='"')
     for row in myReader:
         idMap[row[1]]=row[2]
+    del idMap[''] # No null string keys!    
     return idMap
     
 
 if __name__ == "__main__":
 
-    configFileName="urlshifter.cfg"
-    my_argparser=argparse.ArgumentParser(description='Bills HTML Gizmo')
-    my_argparser.add_argument('-i',type=file,dest='Infile')
-    my_argparser.add_argument('-o',type=argparse.FileType('w'),dest='Outfile');
-    
+    cfgName="./urlshifter.cfg"
+    my_argparser=argparse.ArgumentParser(description='A program to rewrite URLs in an HTML file')
+    my_argparser.add_argument('-i',type=file,required=True,
+                              help="Input HTML file (must exist)",dest='Infile')
+    my_argparser.add_argument('-o',type=argparse.FileType('w'),required=True,
+                              help="Output HTML file (opened write)",dest='Outfile');
+    my_argparser.add_argument('-c',type=str,default=cfgName,required=False,
+                              help="Configuration file name, defaults to %s" % (cfgName),dest="ConfigFileName")
+
     args = my_argparser.parse_args()    
     myConfig = ConfigParser.ConfigParser()
-    myConfig.read("urlshifter.cfg")
-    tableSection='table_list'
+    myConfig.read(args.ConfigFileName)
+    
+    tableSection='urlshifter'
+    
     inPath = myConfig.get(tableSection,'inPath')
     outPath = myConfig.get(tableSection,'outPath')
     tableFN = myConfig.get(tableSection,'tableFile')
