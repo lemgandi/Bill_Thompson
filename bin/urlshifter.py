@@ -1,10 +1,28 @@
 #! /usr/bin/env python
+###########################################################################################################
+#   Copyright (c) Charles Shapiro April 2019
+#
+#   This file is part of urlshifter.
+#   urlshifter is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#   urlshifter is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+#   You should have received a copy of the GNU General Public License
+#   along with urlshifter.  If not, see <http://www.gnu.org/licenses/>.
+#
+###########################################################################################################
 
+
+# Parse HTML and alter URLs as necessary.
 from HTMLParser import HTMLParser
 import argparse
 import sys
 import re
-from urlparse import urlparse
+# from urlparse import urlparse Thought about this but decided it was unnecessary.
 import ConfigParser
 import csv
 import os
@@ -12,7 +30,7 @@ import os
 
 class MyHTMLParser(HTMLParser):
 
-    
+    # Paste in all my data..
     def __init__(self,file,inLoc,outLoc,idDict,exceptionFile,idREList):
         HTMLParser.__init__(self)
         self.outFile=file
@@ -22,10 +40,13 @@ class MyHTMLParser(HTMLParser):
         self.exceptionFile=exceptionFile
         self.infilename=None
         self.idREList=idREList
-
+        
+    # Set filename for each run
     def setInfileName(self,infilename):
         self.infilename=infilename
-            
+        
+    # Find an ID inside a URL.  Use the succession of REs I got from the config file to sequentially
+    # search for it.
     def find_id_in_url(self,url):
         retVal=""
         Success=True
@@ -49,6 +70,7 @@ class MyHTMLParser(HTMLParser):
         else:
             return ""
         
+    # Does this URL match the one given in the configuration file? If so, substitute a new one.    
     def urlFiddler(self,url):
         myUrl=re.sub('&','&amp;',url)
         originalURL=myUrl
@@ -61,7 +83,9 @@ class MyHTMLParser(HTMLParser):
                self.exceptionFile.write('In: %s URL: %s [%s] not found in id list' % (self.infilename,url,inId) + os.linesep)
                myUrl=originalURL
         return(myUrl)
-    
+
+    # Handle "<a" tags.  The parser gets really confused if reftags are malformed, e.g. "<a>" or "<a href=>". So in
+    # that case I throw an "AttributeError" exception which is caught in the calling routine to prevent an abend.
     def handle_reftag(self,tag,attrs):
         self.outFile.write("<"+tag+' ')
         if(len(attrs) < 1):
@@ -83,7 +107,7 @@ class MyHTMLParser(HTMLParser):
                self.outFile.write(">")
                                  
                                    
-                
+    # Determine if my start tag is link.  If so, work on it. If not, just dump it out.
     def handle_starttag(self,tag,attrs):
         if(tag != 'a'):
             self.outFile.write(self.get_starttag_text())
@@ -95,23 +119,28 @@ class MyHTMLParser(HTMLParser):
                 self.exceptionFile.write("Oops. In file %s <%s> has no href" % (self.infilename,tag) + os.linesep)
             finally:
                 self.outFile.write(">")
-
+                
+    # Dump these out with no alteration.
     def handle_decl(self,decl):
-        self.outFile.write('<!'+decl+'>')
-
+        self.outFile.write('<!'+decl+'>'
+        )
+    # Dump these out with no alteration.
     def handle_comment(self,comment):
         self.outFile.write('<!--'+comment+'-->')
         
+    # Dump these out with no alteration.        
     def handle_entityref(self,refname):
         self.outFile.write('&'+refname+';')
-
+        
+    # Dump these out with no alteration.
     def handle_endtag(self,tag):
         self.outFile.write("</"+tag+">")
         
+    # Dump these out with no alteration.        
     def handle_data(self,data):
         self.outFile.write(data)
         
-
+# Read the csv table of input and output ids. The first field is a name; I ignore it.
 def readCsvTable(tableFN):
     idMap=dict()
     csvFile=open(tableFN,'r')
@@ -121,7 +150,7 @@ def readCsvTable(tableFN):
     del idMap[''] # No null string keys!    
     return idMap
     
-
+# Main Line -- handle command line, read config table, instantiate and run html parser.
 if __name__ == "__main__":
 
     cfgName="./urlshifter.cfg"
@@ -145,11 +174,12 @@ if __name__ == "__main__":
     exceptFN = myConfig.get(tableSection,'exceptFile')
     exceptMode = myConfig.get(tableSection,'exceptFileMode')
     exceptionFile=open(exceptFN,exceptMode)
+    
+    # Read the list of regular expressions we use to isolate the input id from
+    # the input URL.
     moreREs=True
     reNum=0
     searchREs=[]
-    # Read the list of regular expressions we use to isolate the input id from
-    # the input URL.
     while(True == moreREs):
         optName="inptRE%d" % (reNum)
         if(myConfig.has_option(tableSection,optName)):
