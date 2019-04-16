@@ -67,10 +67,15 @@ class MyHTMLParser(HTMLParser):
         if(len(attrs) < 1):
             raise AttributeError
         for kk in attrs:
+            if(len(kk) < 2):
+                raise AttributeError        
             if(None == re.match("href",kk[0])):
                 self.outFile.write(kk[0]+"=")
                 for sub in kk[1:]:
-                    self.outFile.write('"'+sub+'"')                
+                    if(None == sub):
+                        raise AttributeError
+                    else:
+                        self.outFile.write('"'+sub+'"')                
             else:
                self.outFile.write("href =")
                newUrl=self.urlFiddler(kk[1])
